@@ -7,7 +7,7 @@ from itertools import zip_longest
 import time
 
 
-def parse_image(filename):
+def parse_image(filename, n_air, n_concrete):
     """
     Imports a greyscale png image, and determines where the walls are from the greyscale value.
     Assuming concrete walls.
@@ -23,12 +23,12 @@ def parse_image(filename):
     return read_img
 
 
-def generate_A(floor, k = 2*np.pi/0.06):
+def generate_A(floor, k = 2*np.pi/0.06, dx=0.01, dy=0.01):
     """
     Assumes floor is an array of complex refractive indexes.
     Returns A as a sparse csc matrix.
     """
-    nx, ny = np.shape(img)
+    nx, ny = np.shape(floor)
     diag = np.zeros(nx*ny, dtype=np.complex64)
     for i in range(nx):
         for j in range(ny):
@@ -44,7 +44,7 @@ def generate_A(floor, k = 2*np.pi/0.06):
     return A.tocsc()
 
 
-def solve_system(lu, x, y):
+def solve_system(lu, x, y, img):
     """
     Solves the system Ax = b given the LU decomposition of A.
 
@@ -52,18 +52,21 @@ def solve_system(lu, x, y):
 
     Returns an array of solutions, where [:, i] is solution for source coordinates [x[i], y[i]]
     """
-    b = np.zeros((nx * ny, max(np.size(x), np.size(y))), dtype=np.complex64)
-    for i, (xi, yi) in enumerate(zip_longest(x, y, fillvalue = np.where(np.size(x) < np.size(y), x[-1], y[-1]))):
+    nx,ny = img.shape
+    b = np.zeros((nx * ny, len(x)*len(y)), dtype=np.complex64)
+    for i, (xi, yi) in enumerate([(i,j) for i in x for j in y]):#enumerate(zip_longest(x, y, fillvalue = np.where(np.size(x) < np.size(y), x[-1], y[-1]))):
+        print(b.shape, ny, nx, xi, yi)
         b[ny * yi + xi, i] = 1e3   # Place a singular source term in b. Not sure what value it should be.
 
     return lu.solve(b)
 
 
-def plot_solution(x):
+def plot_solution(x,img, n_concrete):
     """
      Reshapes x to 2D and plots the result.
      lower and upper set the color scaling.
     """
+    nx, ny = img.shape
     x=x.reshape(nx,ny)
     x = 10*np.log10(np.absolute(x)**2) # Need a reference value for dB scale?
     x = np.ma.array(x, mask = img == n_concrete) # Masks walls so the field is not plotted there. Optional.
