@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+from math import floor
 import numpy as np
 import matplotlib.image
 import matplotlib.pyplot as plt
@@ -6,6 +8,26 @@ import scipy.sparse.linalg
 from itertools import zip_longest
 import time
 
+
+def subdivide_image(image, *, xboxes, yboxes):
+    '''
+    Subdivides an image into xboxes*yboxes smaller boxes
+    and yields the images
+    '''
+    x_size, y_size = int(image.shape[0]/xboxes), int(image.shape[1]/yboxes)
+    xdivs = [x*x_size for x in range(0, xboxes)]
+    ydivs = [y*y_size for y in range(0, yboxes)]
+    for x in xdivs:
+        for y in ydivs:
+            yield image[x:x+x_size, y:y+y_size]
+
+def downsize_image(image, n):
+    '''
+    Downsizes an image by selecting every n pixel, it might be possible to
+    resize to an arbitary resolution, but I didn't want to deal with
+    interpolation and strange behaviour with semi-transparent pixels.
+    '''
+    return image[::n, ::n]
 
 def parse_image(filename, n_air, n_concrete):
     """
