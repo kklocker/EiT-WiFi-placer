@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from math import floor
+from dask import delayed, compute
 import numpy as np
 import matplotlib.image
 import matplotlib.pyplot as plt
