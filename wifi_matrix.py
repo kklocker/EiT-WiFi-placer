@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+from math import floor
+from dask import delayed, compute
 import numpy as np
 import matplotlib.image
 import matplotlib.pyplot as plt
@@ -6,6 +9,26 @@ import scipy.sparse.linalg
 from itertools import zip_longest
 import time
 
+
+def subdivide_image(image, *, xboxes, yboxes):
+    '''
+    Subdivides an image into xboxes*yboxes smaller boxes
+    and yields the images
+    '''
+    x_size, y_size = int(image.shape[0]/xboxes), int(image.shape[1]/yboxes)
+    xdivs = [x*x_size for x in range(0, xboxes)]
+    ydivs = [y*y_size for y in range(0, yboxes)]
+    for x in xdivs:
+        for y in ydivs:
+            yield image[x:x+x_size, y:y+y_size]
+
+def downsize_image(image, n):
+    '''
+    Downsizes an image by selecting every n pixel, it might be possible to
+    resize to an arbitary resolution, but I didn't want to deal with
+    interpolation and strange behaviour with semi-transparent pixels.
+    '''
+    return image[::n, ::n]
 
 def parse_image(filename, n_air, n_concrete):
     """
@@ -43,22 +66,32 @@ def generate_A(floor, k = 2*np.pi/0.06, dx=0.01, dy=0.01):
 
     return A.tocsc()
 
+def lu_solve(lu, b):
+    """
+    Helper function for dask parallelization.
+    """
+    return lu.solve(b)
 
 def solve_system(lu, x, y, img):
     """
     Solves the system Ax = b given the LU decomposition of A.
-
     x and y are lists of coordinates for positions of source term.
-
-    Returns an array of solutions, where [:, i] is solution for source coordinates [x[i], y[i]]
+    Returns an array of solutions, where [i] is solution for source coordinates [x[i], y[i]]
     """
     nx,ny = img.shape
     b = np.zeros((nx * ny, len(x)*len(y)), dtype=np.complex64)
-    for i, (xi, yi) in enumerate([(i,j) for i in x for j in y]):#enumerate(zip_longest(x, y, fillvalue = np.where(np.size(x) < np.size(y), x[-1], y[-1]))):
-        print(b.shape, ny, nx, xi, yi)
+    for i, (xi, yi) in enumerate([(i,j) for i in x for j in y]):
+        #print(b.shape, ny, nx, xi, yi)
         b[ny * yi + xi, i] = 1e3   # Place a singular source term in b. Not sure what value it should be.
 
-    return lu.solve(b)
+    sol = []
+    for i in range(np.size(b,1)):
+        new = delayed(lu_solve)(lu, b[:,i])
+        sol.append(new)
+    sol = compute(*sol)
+
+    return sol
+
 
 
 def plot_solution(x,img, n_concrete):
@@ -71,7 +104,7 @@ def plot_solution(x,img, n_concrete):
     x = 10*np.log10(np.absolute(x)**2) # Need a reference value for dB scale?
     x = np.ma.array(x, mask = img == n_concrete) # Masks walls so the field is not plotted there. Optional.
     plt.figure(figsize=(ny/100, nx/100))
-    plt.gca().patch.set_color('0.2')
+    plt.gca().patch.set_color('0.0')
     plt.contourf(x, 80, corner_mask = False, cmap = "jet", origin='lower', vmin = -50, vmax = -28, extend = 'both')
     #plt.show()
 
@@ -85,7 +118,7 @@ if __name__ == '__main__':
     n_concrete = 2.16 - 0.021j     # Should depend on wavenumber.
 
     # Image and grid
-    img = parse_image('plan-1k.png')
+    img = parse_image('plan-1k.png', n_air, n_concrete)
     print("Image size: ", np.shape(img))
     #L = 10
     nx, ny = np.shape(img)
@@ -101,17 +134,23 @@ if __name__ == '__main__':
     print("A and LU decomposition time: ", round(toc - tic, 3))
 
     # Coordinates for placement of WiFi source. These are passed to the solver.
-    x_coord = [55, 100, 150, 200, 250,  300, 350, 400, 450]
-    y_coord = [350]
+    x_coord = [150, 640, 650]
+    y_coord = [500]
+
 
     # Solve the system
     tic = time.time()
-    sol = solve_system(LU, x_coord, y_coord)
+
+    sol = solve_system(LU, x_coord, y_coord, img)
     toc = time.time()
-    print("Solve time: ", round(toc-tic, 3))
-    print("Time per position: ", round((toc-tic)/9, 3))
+    print("Solve time: ", toc-tic)
+    print("Time per position: ", (toc-tic)/np.size(sol, 0))
+    print(np.shape(sol))
 
 
-    for i in range(np.size(sol, 1)):
-        plot_solution(sol[:,i])
+
+    for i in range(np.size(sol, 0)):
+        plot_solution(sol[i], img, n_concrete)
     plt.show()
+
+
