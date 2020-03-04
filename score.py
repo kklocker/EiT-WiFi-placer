@@ -12,23 +12,30 @@ def create_gaussian(N = 1000, sigma=1.0, mu=0):
 
 
 @jit
-def basic_score(sol, img, n_concrete):
+def basic_score(sol, img):
     """
     Finn ut hva som skjer utenfor boundary.
     """
     # u = np.abs(u)
-    u = np.ma.array((np.abs(sol)**2).reshape(img.shape), mask = (img ==n_concrete))
+    u = np.ma.array(np.abs(sol).reshape(img.shape), mask = (img !=1.))
     area = u.count()
     return np.sum(u) / area
 
 
 @jit
-def step_score(sol, img,u0):
+def step_score(sol, img):
     """
     Minimum signal: u0
     """
+
+    umax = np.max(sol)
+    db = 10*np.log10(sol/umax)    
+    
+    A = np.ma.array(np.abs(sol).reshape(img.shape), mask = (img !=1.))
     A = u.shape[0]*u.shape[1]
-    tmp = np.where(u>=u0, u, 0)
+    print(f"DECIBEL: {db}")
+    #tmp = np.where(u>=u0, u, 0)
+    tmp = umax[db> -70]
     return np.sum(tmp) / A
 
 #NB: mye tregere.
