@@ -35,3 +35,19 @@ def parse_image(filename):
     read_img[~all_mask] = N_CONSTANTS["air"]["value"]
     
     return read_img
+
+
+
+def pad_image(img):
+    """
+    Surrounds the floorplan with absorbing material to stop reflections. pad_value should be massively complex
+    to achieve this.
+    """
+    pad_width = 4 # Amount of pixels to pad with.
+    pad_value = 1e3j
+    x, y = np.shape(img)
+
+    padded_img = np.zeros((x + 2*pad_width, y + 2*pad_width)) + pad_value
+    padded_img[pad_width:pad_width+x, pad_width:pad_width+y] = img
+
+    return padded_img
