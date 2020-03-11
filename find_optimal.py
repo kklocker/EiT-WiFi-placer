@@ -1,9 +1,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from dask import delayed, compute
+import scipy
 
-from wifi_matrix import generate_lu, solve_system, parse_image
+from wifi_matrix import generate_lu, solve_system, parse_image, generate_A
 from score import step_score
+
+from scipy.sparse import save_npz, load_npz
+import os
 
 
 def find_optimal_placement(lu, img, N=100):
@@ -15,50 +19,69 @@ def find_optimal_placement(lu, img, N=100):
     nx, ny = img.shape
 
     n = int(np.sqrt(N))
+    n_new = n
+    # print(n)
+    stepx = nx // n
+    stepy = ny // n
 
-    stepx = n // nx
-    stepy = n // ny
+    # print(nx, ny, stepx, stepy)
     x = np.arange(0, nx, stepx, dtype=np.uint16)
-    y = np.arange(0, ny, stepx, dtype=np.uint16)
+    y = np.arange(0, ny, stepy, dtype=np.uint16)
 
     optimal_solution_found = False
+    # print(f"shape x: {x.shape}")
+    # print(f"shape y: {y.shape}")
 
+    curr_best_idx = []
+    curr_best_sol = []
     while not optimal_solution_found:
         scores = []
+        solutions = []
+        sol = np.array(solve_system(lu, x, y, img))
 
-        for i in range(len(x)):
-            for j in range(len(y)):
-                sol = delayed(solve_system)(lu, [x[i]], [y[j]])
-                # idx = i*n + j
-                score = step_score(sol[:, 0], img)
-                scores.append(score)
+        for i in range(sol.shape[0]):
+            score = step_score((sol[i, :]).reshape(img.shape), img)
+            print(score)
+            scores.append(score)
 
-        results = np.array(compute(scores)).reshape((n, n))
-        max_arg = np.argmax(results)
+        results = np.array(scores).reshape((x.shape[0], y.shape[0]))
+        tmp_idx = np.argmax(results)
+        curr_best_sol.append(sol[tmp_idx, :])
+        max_arg = np.unravel_index(tmp_idx, results.shape)
+        # print(max_arg)
 
         x_new = x[max_arg[0]]
         y_new = y[max_arg[1]]
-        n_new = n // 2
+        n_new = n_new // 2
+        curr_best_idx.append((x_new, y_new))
+        # print(x)
+        # print(y)
+        # print(f"new x: {x_new}")
+        # print(f"new y: {y_new}")
+        # print(f"new n: {n_new}")
 
         if n_new == 1:
             optimal_solution_found = True
+            break
 
         n_new_x = min(n_new, (x[-1] - x[0]))
         n_new_y = min(n_new, (y[-1] - y[0]))
 
-        start_x = max(0, x_new - n_new_x // 2)
-        stop_x = min(nx, x_new + n_new_x // 2)
+        start_x = max(0, x_new - n_new_x)
+        stop_x = min(nx, x_new + n_new_x)
 
-        start_y = max(0, y_new - n_new_y // 2)
-        stop_y = min(ny, y_new + n_new_y // 2)
+        start_y = max(0, y_new - n_new_y)
+        stop_y = min(ny, y_new + n_new_y)
 
         new_step_x = n // (stop_x - start_x)
         new_step_y = n // (stop_y - start_y)
 
         x = np.arange(start_x, stop_x, new_step_x, dtype=np.uint16)
         y = np.arange(start_y, stop_y, new_step_y, dtype=np.uint16)
+        # print(f"new x list:  {x}")
+        # print(f"new y list: {y}")
 
-    return x_new, y_new
+    return curr_best_idx, curr_best_sol
 
 
 if __name__ == "__main__":
@@ -68,7 +91,16 @@ if __name__ == "__main__":
     n_air = 1
     n_concrete = 2.16 - 0.021j  # Should depend on wavenumber.
     img = parse_image("plan-1k.png", n_air, n_concrete)
-    lu = generate_lu(img, k)
+
+    if not os.path.exists("plan-1k-A.npz"):
+        print("Generating new A. ")
+        A = generate_A(img, k)
+        save_npz("plan-1k-A", A)
+    else:
+        print("Loading A.")
+        A = load_npz("plan-1k-A.npz")
+
+    lu = scipy.sparse.linalg.splu(A)
 
     x, y = find_optimal_placement(lu, img)
 
