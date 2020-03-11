@@ -97,7 +97,8 @@ def solve_system(lu, x, y, img):
     for i, (xi, yi) in enumerate([(i, j) for i in x for j in y]):
         # print(b.shape, ny, nx, xi, yi)
         b[
-            b[ny * xi + yi, i] = 1e3  # Place a singular source term in b. Not sure what value it should be.
+            ny * xi + yi, i
+        ] = 1e3  # Place a singular source term in b. Not sure what value it should be.
 
     sol = []
     for i in range(np.size(b, 1)):
