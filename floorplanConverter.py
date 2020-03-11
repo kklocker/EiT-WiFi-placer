@@ -44,7 +44,7 @@ def pad_image(img):
     to achieve this.
     """
     pad_width = 4 # Amount of pixels to pad with.
-    pad_value = 1e3j
+    pad_value = 1-1j
     x, y = np.shape(img)
 
     padded_img = np.zeros((x + 2*pad_width, y + 2*pad_width)) + pad_value
