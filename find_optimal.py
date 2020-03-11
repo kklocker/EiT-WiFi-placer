@@ -28,12 +28,12 @@ def find_optimal_placement(lu, img, N=100):
 
         for i in range(len(x)):
             for j in range(len(y)):
-                sol = Delayed(solve_system)(lu, [x[i]], [y[j]])
+                sol = delayed(solve_system)(lu, [x[i]], [y[j]])
                 # idx = i*n + j
                 score = step_score(sol[:, 0], img)
                 scores.append(score)
 
-        results = np.array(Compute(scores)).reshape((n, n))
+        results = np.array(compute(scores)).reshape((n, n))
         max_arg = np.argmax(results)
 
         x_new = x[max_arg[0]]
