@@ -20,17 +20,14 @@ def find_optimal_placement(lu, img, N=100):
 
     n = int(np.sqrt(N))
     n_new = n
-    # print(n)
+
     stepx = nx // n
     stepy = ny // n
 
-    # print(nx, ny, stepx, stepy)
-    x = np.arange(0, nx, stepx, dtype=np.uint16)
-    y = np.arange(0, ny, stepy, dtype=np.uint16)
+    x = np.arange(0, nx + 1, stepx, dtype=np.uint16)
+    y = np.arange(0, ny + 1, stepy, dtype=np.uint16)
 
     optimal_solution_found = False
-    # print(f"shape x: {x.shape}")
-    # print(f"shape y: {y.shape}")
 
     curr_best_idx = []
     curr_best_sol = []
@@ -40,46 +37,33 @@ def find_optimal_placement(lu, img, N=100):
         sol = np.array(solve_system(lu, x, y, img))
 
         for i in range(sol.shape[0]):
-            score = step_score((sol[i, :]).reshape(img.shape), img)
-            print(score)
+            score = delayed(step_score)((sol[i, :]).reshape(img.shape), img)
             scores.append(score)
 
-        results = np.array(scores).reshape((x.shape[0], y.shape[0]))
+        results = np.array(compute(*scores)).reshape((x.shape[0], y.shape[0]))
         tmp_idx = np.argmax(results)
         curr_best_sol.append(sol[tmp_idx, :])
         max_arg = np.unravel_index(tmp_idx, results.shape)
-        # print(max_arg)
 
         x_new = x[max_arg[0]]
         y_new = y[max_arg[1]]
         n_new = n_new // 2
-        curr_best_idx.append((x_new, y_new))
-        # print(x)
-        # print(y)
-        # print(f"new x: {x_new}")
-        # print(f"new y: {y_new}")
-        # print(f"new n: {n_new}")
 
-        if n_new == 1:
+        nx = 1 if nx <= 1 else (nx // 2)
+        ny = 1 if ny <= 1 else (ny // 2)
+        curr_best_idx.append((x_new, y_new))
+
+        if (nx == 1 & ny == 1) or (stepx == 1 & stepy == 1):
             optimal_solution_found = True
             break
-
-        n_new_x = min(n_new, (x[-1] - x[0]))
-        n_new_y = min(n_new, (y[-1] - y[0]))
-
-        start_x = max(0, x_new - n_new_x)
-        stop_x = min(nx, x_new + n_new_x)
-
-        start_y = max(0, y_new - n_new_y)
-        stop_y = min(ny, y_new + n_new_y)
-
-        new_step_x = n // (stop_x - start_x)
-        new_step_y = n // (stop_y - start_y)
-
-        x = np.arange(start_x, stop_x, new_step_x, dtype=np.uint16)
-        y = np.arange(start_y, stop_y, new_step_y, dtype=np.uint16)
-        # print(f"new x list:  {x}")
-        # print(f"new y list: {y}")
+        stepx = 1 if stepx <= 1 else (nx // n)
+        stepy = 1 if stepy <= 1 else (ny // n)
+        start_x = max(0, x_new - (nx // 2))
+        stop_x = min(img.shape[0], x_new + (nx // 2))
+        start_y = max(0, y_new - (ny // 2))
+        stop_y = min(img.shape[1], y_new + (ny // 2))
+        x = np.arange(start_x, stop_x, stepx, dtype=np.uint16)
+        y = np.arange(start_y, stop_y, stepy, dtype=np.uint16)
 
     return curr_best_idx, curr_best_sol
 
