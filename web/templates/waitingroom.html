@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+{% block content %}
+	<div class="py-3"></div>
+	<div class="h3"> WiFi-kalkulator </div>
+	{% if queue != None %}
+	<div id="progress">
+		{{ queue|length }}/{{ queue_size }} images in queue
+	</div>
+	{% else %}
+	<img style="width:100%"
+	src="{{url_for('static', filename='results/' + key + '.png')}}">
+	{% endif %}
+{% endblock %}
