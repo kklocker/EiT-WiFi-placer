@@ -109,6 +109,16 @@ def solve_system(lu, x, y, img):
     return sol
 
 
+def solve_single_system(lu, x, y, img_shape):
+    """
+    Solves system for a single point. To be parallellized. 
+    """
+    nx, ny = img_shape
+    b = np.zeros(nx * ny, dtype=np.complex64)
+    b[ny * x + y] = 1e3
+    return lu.solve(b)
+
+
 def plot_solution(x, img, n_concrete):
     """
      Reshapes x to 2D and plots the result.

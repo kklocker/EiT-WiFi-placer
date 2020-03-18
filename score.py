@@ -1,5 +1,6 @@
 import numpy as np
 from numba import jit
+from dask.array import ma
 
 
 def create_gaussian(N=1000, sigma=1.0, mu=0):
@@ -31,13 +32,15 @@ def step_score(sol, img):
     """
     Minimum signal: u0
     """
+
     umax = 1e3  # np.max(sol)
     db = 10 * np.log10(np.abs(sol) / umax)
+    # A = ma.masked_array(np.abs(sol).reshape(img.shape), mask=(img != 1.0))
     A = np.ma.array(np.abs(sol).reshape(img.shape), mask=(img != 1.0))
-    A = sol.shape[0] * sol.shape[1]
+    # A = sol.shape[0] * sol.shape[1]
     # print(f"DECIBEL: {db}")
     tmp = np.abs(sol)[db > -70]
-    return np.sum(tmp) / A
+    return np.sum(tmp) / np.sum(A)
 
 
 # NB: mye tregere.
