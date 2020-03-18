@@ -17,10 +17,11 @@ import urllib
 import re
 
 ## External package imports ##
-from flask import Flask, render_template, request, flash, redirect
+from flask import Flask, render_template, request, flash, redirect, jsonify
 
 def process_image(key):
     '''We can't actually do this yet'''
+    sleep(40)
     os.rename(f'uploads/{key}.png', f'static/results/{key}.png')
 
 def process_queue():
@@ -28,10 +29,15 @@ def process_queue():
     tries to empty it. We don't have a way to process the image right now,
     though.'''
     while True:
-        with shelve.open('wifi', writeback=True) as db:
-            if len(db['queue']) > 0:
-                key = db['queue'][0]
-                process_image(key)
+        # Process and pop in two different transactions, so that things can
+        # happen while processing.
+        with shelve.open('wifi') as db:
+            queue = db['queue']
+
+        if len(queue) > 0:
+            key = queue[0]
+            process_image(key)
+            with shelve.open('wifi', writeback=True) as db:
                 db['queue'].pop(0)
         sleep(2)
 
@@ -59,10 +65,12 @@ def waitingroom(key):
         return redirect("/")
 
     if key + '.png' in os.listdir(path='static/results'):
-        return render_template('waitingroom.html',
-                               key=key,
-                               queue=None)
-
+        if 'json' in request.args:
+            return jsonify(dict(key=key, done=True))
+        else:
+            return render_template('waitingroom.html',
+                                   key=key,
+                                   queue=None)
 
     with shelve.open('wifi') as db:
         queue = db['queue']
@@ -74,12 +82,19 @@ def waitingroom(key):
         queue_size = db['queue_size']
         current_position = queue.index(key)
 
-    return render_template('waitingroom.html',
-                           key=key,
-                           queue=queue,
-                           queue_size=queue_size,
-                           current_position=current_position,
-                           )
+    if 'json' in request.args:
+        return jsonify(dict(key=key,
+                            queue_elements=len(queue),
+                            queue_size=queue_size,
+                            current_position=current_position,
+                            done=False))
+    else:
+        return render_template('waitingroom.html',
+                               key=key,
+                               queue=queue,
+                               queue_size=queue_size,
+                               current_position=current_position,
+                               )
 
 @flask.route('/', methods=('get','post'))
 def index():

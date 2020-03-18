@@ -4,10 +4,27 @@
 	<div class="h3"> WiFi-kalkulator </div>
 	{% if queue != None %}
 	<div id="progress">
-		{{ queue|length }}/{{ queue_size }} images in queue
+		{{ queue|length }}/{{ queue_size }} images in queue, you are number
+		{{ current_position + 1 }}
 	</div>
+	<script>
+		setInterval(()=>{
+			fetch('/waitingroom/{{key}}?json=true').then((response)=>{
+				return response.json();
+			}).then((data)=>{
+				if (data['done'] == true) {
+					location.reload();
+				} else {
+					t = `${data['queue_elements']}/${data['queue_size']} images
+						in queue, you are number ${data['current_position'] + 1}`
+					document.getElementById("progress").innerHTML = t
+				}
+			})
+		}, 3000)
+	</script>
 	{% else %}
 	<img style="width:100%"
 	src="{{url_for('static', filename='results/' + key + '.png')}}">
 	{% endif %}
 {% endblock %}
+
