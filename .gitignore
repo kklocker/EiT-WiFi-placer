@@ -1,3 +1,5 @@
 __pycache__/*
 *.ipynb
-
+web/uploads/*
+web/static/results/*
+*.db
