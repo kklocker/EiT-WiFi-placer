@@ -8,19 +8,19 @@
 			<input type="hidden" name="key" value={{key}}></input>
 			<div>
 				{% if not queue_full %}
-					<label for="floorPlan">Upload a floorplan</label>
+					<label for="floorPlan">Last opp en plantegning [.png]</label>
 					<input class="form-control-file" type="file" id="floorPlan"
 					name="floorPlan"></input>
 				{% else %}
 				<label for="floorPlan">
-					<strike>Upload a floorplan</strike> The upload queue is
-					full, check back later
+					<strike>Last opp en plantegning [.png]</strike>
+					Køen er full, prøv igjen senere
 				</label>
 					<input class="form-control-file" type="file" id="floorPlan"
 					name="floorPlan" disabled></input>
 				{% endif %}
 			</div>
-			<input class="mt-3" type="submit" value="Upload"></input>
+			<input class="mt-3" type="submit" value="Last opp"></input>
 		</div>
 	</form>
 {% endblock %}

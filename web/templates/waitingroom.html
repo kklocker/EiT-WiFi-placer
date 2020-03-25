@@ -4,7 +4,7 @@
 	<div class="h3"> WiFi-kalkulator </div>
 	{% if queue != None %}
 	<div id="progress">
-		{{ queue|length }}/{{ queue_size }} images in queue, you are number
+		{{ queue|length }}/{{ queue_size }} bilder i køen, du er nummer
 		{{ current_position + 1 }}
 	</div>
 	<script>
@@ -15,8 +15,8 @@
 				if (data['done'] == true) {
 					location.reload();
 				} else {
-					t = `${data['queue_elements']}/${data['queue_size']} images
-						in queue, you are number ${data['current_position'] + 1}`
+					t = `${data['queue_elements']}/${data['queue_size']} bilder
+						i køen, du er nummer ${data['current_position'] + 1}`
 					document.getElementById("progress").innerHTML = t
 				}
 			})

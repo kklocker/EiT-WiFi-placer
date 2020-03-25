@@ -21,7 +21,7 @@ from flask import Flask, render_template, request, flash, redirect, jsonify
 
 def process_image(key):
     '''We can't actually do this yet'''
-    sleep(40)
+    sleep(10)
     os.rename(f'uploads/{key}.png', f'static/results/{key}.png')
 
 def process_queue():
@@ -114,33 +114,40 @@ def index():
         if 'key' in request.form:
             key = request.form.get('key')
             if not re.search(r'[a-z0-9]{64}', key):
-                flash('Invalid key', 'danger')
+                flash('Ugyldig nøkkel', 'danger')
                 return redirect(request.url)
 
         if queue_full:
-            flash('Upload queue full', 'danger')
+            flash('Køen er full', 'danger')
             return redirect(request.url)
 
         if 'floorPlan' not in request.files:
-            flash('No file received', 'danger')
+            flash('Ingen fil mottatt', 'danger')
             return redirect(request.url)
 
         file = request.files['floorPlan']
         if not file.filename.endswith('.png'):
-            flash('Wrong file type, must be png', 'danger')
+            flash('Feil filtype, bruk png', 'danger')
             return redirect(request.url)
+
+        file.seek(0, os.SEEK_END)
+        max_size = 2
+        if file.tell() > max_size*10e5:
+            flash(f'Filen er for stor, mindre enn {max_size}mb, takk', 'danger')
+            return redirect("/")
+        file.seek(0)
 
         fname = os.path.join('uploads', randstr() + '.png')
         # Add the file to the queue
         with shelve.open('wifi', writeback=True) as db:
             if key in db['queue']:
-                flash('Key already in queue', 'danger')
+                flash('Denne sesjonen prosesserer allerede et bilde', 'danger')
                 return redirect("/")
 
             db['queue'].append(key)
 
         file.save(f'uploads/{key}.png')
-        flash('File added to queue', 'success')
+        flash('Filen er lagt til i køen', 'success')
         return redirect('/waitingroom/' + key)
 
     return render_template('index.html',
