@@ -28,19 +28,21 @@ def basic_score(sol, img):
 
 
 @jit(nopython=False, forceobj=True)
-def step_score(sol, img):
+def step_score(sol, img, threshold=-50):
     """
     Minimum signal: u0
     """
 
-    umax = 1e3  # np.max(sol)
-    db = 10 * np.log10(np.abs(sol) / umax)
+    # umax = 1e3  # np.max(sol)
+    umax = np.max(np.abs(sol))
+    db = 10 * np.log10(np.abs(sol) / umax).reshape(img.shape)
     # A = ma.masked_array(np.abs(sol).reshape(img.shape), mask=(img != 1.0))
     A = np.ma.array(np.abs(sol).reshape(img.shape), mask=(img != 1.0))
-    # A = sol.shape[0] * sol.shape[1]
-    # print(f"DECIBEL: {db}")
-    tmp = np.abs(sol)[db > -70]
-    return np.sum(tmp) / np.sum(A)
+
+    area = A.count()
+
+    tmp = A[db > threshold]
+    return np.sum(tmp) / area
 
 
 # NB: mye tregere.
@@ -57,4 +59,3 @@ def weighted_score(u, p, degree=1.0):
             r = np.linalg.norm([i - p[0], j - p[1]])
             temp[i, j] = (r ** degree) * u[i, j]
     return np.sum(temp) / A
-

@@ -48,6 +48,21 @@ def parse_image(filename, n_air, n_concrete):
     return read_img
 
 
+def pad_image(img):
+    """
+    Surrounds the floorplan with absorbing material to stop reflections. pad_value should be massively complex
+    to achieve this.
+    """
+    pad_width = 4  # Amount of pixels to pad with.
+    pad_value = 1 - 100000j
+    x, y = np.shape(img)
+
+    padded_img = np.zeros((x + 2 * pad_width, y + 2 * pad_width)) + pad_value
+    padded_img[pad_width : pad_width + x, pad_width : pad_width + y] = img
+
+    return padded_img
+
+
 def generate_lu(floor, *args):
     return scipy.sparse.linalg.splu(generate_A(floor, *args))
 
@@ -115,7 +130,7 @@ def solve_single_system(lu, x, y, img_shape):
     """
     nx, ny = img_shape
     b = np.zeros(nx * ny, dtype=np.complex64)
-    b[ny * x + y] = 1e3
+    b[ny * x + y] = 1.0
     return lu.solve(b)
 
 
@@ -192,4 +207,3 @@ if __name__ == "__main__":
     for i in range(np.size(sol, 0)):
         plot_solution(sol[i], img, n_concrete)
     plt.show()
-

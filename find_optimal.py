@@ -34,39 +34,22 @@ def find_optimal_placement(lu, img, N=100):
 
     stepx = x[1] - x[0]  # nx // (n)
     stepy = y[1] - y[0]  # ny // (n)
-
-    # #     print(nx, ny, stepx, stepy)
-    #     x = np.arange(stepx//2, nx - stepx//2 +1, stepx, dtype=np.uint16)
-    #     y = np.arange(stepy//2, ny - stepy//2 + 1, stepy, dtype=np.uint16)
-
     optimal_solution_found = False
-    #     print(f"shape x: {x.shape}")
-    #     print(f"shape y: {y.shape}")
     all_tested_points = []
     curr_best_idx = []
-    curr_best_sol = []
+    # curr_best_sol = []
     while not optimal_solution_found:
         all_tested_points.append([x, y])
         results = scores_from_point_lists(lu, img, x, y)
-
         tmp_idx = np.argmax(results)
-        # curr_best_sol.append(sol[tmp_idx, :])
         max_arg = np.unravel_index(tmp_idx, results.shape)
-        #         print(max_arg)
-
         x_new = x[max_arg[0]]
         y_new = y[max_arg[1]]
         n_new = n_new // 2
-
-        #         print("nx, ny: ", nx, ny)
         nx = 1 if nx <= 1 else (nx // 2)
         ny = 1 if ny <= 1 else (ny // 2)
-
         curr_best_idx.append((x_new, y_new))
-        #         print(x)
-        #         print(y)
-        print(f"new (x, y): ({x_new}, {y_new}). \t Score: {results[max_arg]}")
-        #         print(f"nx, ny: {nx}, {ny}")
+        # print(f"new (x, y): ({x_new}, {y_new}). \t Score: {results[max_arg]}")
 
         if (nx == 1 & ny == 1) or (stepx == 1 & stepy == 1):
             optimal_solution_found = True
@@ -95,10 +78,6 @@ def find_optimal_placement(lu, img, N=100):
         x = np.append(x, x_new)
         y = np.append(y, y_new)
 
-    #         print(f"start_x. {start_x}, stop_x: {stop_x}")
-    #         print(f"new x list:  {x}")
-    #         print(f"new y list: {y}")
-    #         input()
     all_tested_points = np.array(all_tested_points)
     return curr_best_idx, all_tested_points  # , curr_best_sol
 
@@ -141,4 +120,3 @@ if __name__ == "__main__":
     lu = scipy.sparse.linalg.splu(A)
 
     x, y = find_optimal_placement(lu, img)
-
