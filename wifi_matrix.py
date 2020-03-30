@@ -79,6 +79,42 @@ def generate_A(floor, k=2 * np.pi / 0.06, dx=0.01, dy=0.01):
     return A.tocsc()
 
 
+def generate_A_higher_order(floor, k=2 * np.pi / 0.06, dx=0.01, dy=0.01):
+    """
+    Assumes floor is an array of complex refractive indexes.
+    Returns A as a sparse csc matrix.
+    """
+    nx, ny = np.shape(floor)
+    diag = np.zeros(nx * ny, dtype=np.complex64)
+
+    for i in range(nx):
+        for j in range(ny):
+            diag[ny * i + j] = - 30 / (12*dx ** 2) - 30 / (12*dy ** 2) + np.square(k / floor[i, j])
+
+    diag_x1 = 16 / (12*dx ** 2)
+    diag_x2 = -1 / (12*dy ** 2)
+
+    diag_y1 = 16 / (12*dy ** 2)
+    diag_y2 = -1 / (12*dy ** 2)
+
+    A = scipy.sparse.diags(
+        [diag_y2, diag_y1, diag_x2, diag_x1, diag, diag_x1, diag_x2, diag_y1, diag_y2],
+        [-2*ny, -ny, -2, -1, 0, 1, 2, ny, 2*ny],
+        shape=(nx * ny, nx * ny),
+        format="lil",
+        dtype=np.complex64,
+    )
+
+    for m in range(1, nx):
+        j = m * ny
+        i = j - 1
+        A[i, j], A[j, i] = 0, 0
+        A[i-1, j], A[j, i-1] = 0, 0
+        A[i, j+1], A[j+1, i] = 0, 0
+
+    return A.tocsc()
+
+
 def lu_solve(lu, b):
     """
     Helper function for dask parallelization.
