@@ -34,10 +34,10 @@ def step_score(sol, img, threshold=-50):
     """
 
     # umax = 1e3  # np.max(sol)
-    umax = np.max(np.abs(sol))
-    db = 10 * np.log10(np.abs(sol) / umax).reshape(img.shape)
+    umax = np.max(np.square(np.abs(sol)))
+    db = 10 * np.log10(np.square(np.abs(sol)) / umax).reshape(img.shape)
     # A = ma.masked_array(np.abs(sol).reshape(img.shape), mask=(img != 1.0))
-    A = np.ma.array(np.abs(sol).reshape(img.shape), mask=(img != 1.0))
+    A = np.ma.array(np.square(np.abs(sol)).reshape(img.shape), mask=(img != 1.0))
 
     area = A.count()
 
