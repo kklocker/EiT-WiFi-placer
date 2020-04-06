@@ -4,7 +4,7 @@ from scipy import signal
 
 def normalize(x, low, high):
     x -= low
-    x = x*(high/max(x))
+    x = x * (high / max(x))
     return x.astype(int)
 
 
@@ -27,16 +27,16 @@ def gauss_grid(img, n=20):
 
     h = 100
     h_min = 1
-    rho = signal.gaussian(n, n/4, sym=False)
+    rho = signal.gaussian(n, n / 4, sym=False)
 
     x_array = np.zeros(n)
     for i in range(1, n):
-        h_next = max(h_min, h/rho[i])
-        x_array[i] = x_array[i-1] + h_next
+        h_next = max(h_min, h / rho[i])
+        x_array[i] = x_array[i - 1] + h_next
     y_array = np.copy(x_array)
 
-    x_array = normalize(x_array, 0, nx-1)
-    y_array = normalize(y_array, 0, ny-1)
+    x_array = normalize(x_array, 0, nx - 1)
+    y_array = normalize(y_array, 0, ny - 1)
 
     points = np.array([(i, j) for i in x_array for j in y_array])
     filtered_points = wall_filter(points, img)

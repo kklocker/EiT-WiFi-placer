@@ -6,8 +6,10 @@ import matplotlib.image
 import matplotlib.pyplot as plt
 import scipy.sparse
 import scipy.sparse.linalg
+from scipy.sparse import save_npz, load_npz
 from itertools import zip_longest
 import time
+import os
 
 
 def subdivide_image(image, *, xboxes, yboxes):
@@ -54,7 +56,7 @@ def pad_image(img):
     to achieve this.
     """
     pad_width = 4  # Amount of pixels to pad with.
-    pad_value = 1 - 100000j
+    pad_value = 1 - 1j
     x, y = np.shape(img)
 
     padded_img = np.zeros((x + 2 * pad_width, y + 2 * pad_width)) + pad_value
@@ -76,7 +78,7 @@ def generate_A(floor, k=2 * np.pi / 0.06, dx=0.01, dy=0.01):
     diag = np.zeros(nx * ny, dtype=np.complex64)
     for i in range(nx):
         for j in range(ny):
-            diag[ny * i + j] = -2 / dx ** 2 - 2 / dy ** 2 + np.square(k / floor[i, j])
+            diag[ny * i + j] = -2 / dx ** 2 - 2 / dy ** 2 + np.square(k) / floor[i, j]
 
     A = scipy.sparse.diags(
         [1 / dy ** 2, 1 / dx ** 2, diag, 1 / dx ** 2, 1 / dy ** 2],
@@ -104,17 +106,21 @@ def generate_A_higher_order(floor, k=2 * np.pi / 0.06, dx=0.01, dy=0.01):
 
     for i in range(nx):
         for j in range(ny):
-            diag[ny * i + j] = - 30 / (12*dx ** 2) - 30 / (12*dy ** 2) + np.square(k / floor[i, j])
+            diag[ny * i + j] = (
+                -30 / (12 * dx ** 2)
+                - 30 / (12 * dy ** 2)
+                + np.square(k) / floor[i, j]  # n ~ sqrt (e_r)
+            )
 
-    diag_x1 = 16 / (12*dx ** 2)
-    diag_x2 = -1 / (12*dy ** 2)
+    diag_x1 = 16 / (12 * dx ** 2)
+    diag_x2 = -1 / (12 * dy ** 2)
 
-    diag_y1 = 16 / (12*dy ** 2)
-    diag_y2 = -1 / (12*dy ** 2)
+    diag_y1 = 16 / (12 * dy ** 2)
+    diag_y2 = -1 / (12 * dy ** 2)
 
     A = scipy.sparse.diags(
         [diag_y2, diag_y1, diag_x2, diag_x1, diag, diag_x1, diag_x2, diag_y1, diag_y2],
-        [-2*ny, -ny, -2, -1, 0, 1, 2, ny, 2*ny],
+        [-2 * ny, -ny, -2, -1, 0, 1, 2, ny, 2 * ny],
         shape=(nx * ny, nx * ny),
         format="lil",
         dtype=np.complex64,
@@ -124,8 +130,8 @@ def generate_A_higher_order(floor, k=2 * np.pi / 0.06, dx=0.01, dy=0.01):
         j = m * ny
         i = j - 1
         A[i, j], A[j, i] = 0, 0
-        A[i-1, j], A[j, i-1] = 0, 0
-        A[i, j+1], A[j+1, i] = 0, 0
+        A[i - 1, j], A[j, i - 1] = 0, 0
+        A[i, j + 1], A[j + 1, i] = 0, 0
 
     return A.tocsc()
 
@@ -194,6 +200,56 @@ def plot_solution(x, img, n_concrete):
         extend="both",
     )
     # plt.show()
+
+
+def basic_lu(filename, higher_order=False):
+    """For testing purposes
+    
+    Arguments:
+        filename {[string]} -- path to img 
+    
+    Returns:
+        scipy splu -- lu-decomp
+    """
+
+    wavelength = 0.06  # Wavelength of WiFi in meters: 0.12 for 2.5GHz; 0.06 for 5GHz.
+    k = 2 * np.pi / wavelength
+    n_air = 1
+    # n_concrete = 2.16 - 0.021j  # Should depend on wavenumber.
+    n_concrete = 2.5 - 1.0j * (
+        2.5 * 0.2
+    )  # https://trace.tennessee.edu/cgi/viewcontent.cgi?article=1493&context=utk_graddiss
+
+    img = parse_image(filename, n_air, n_concrete)
+    img = pad_image(img)
+
+    if not os.path.exists("testrom2.npz"):
+        print("Generating new A. ")
+        if higher_order:
+            A = generate_A_higher_order(img, k)
+        else:
+            A = generate_A(img, k)
+        save_npz("plan-1k-A", A)
+    else:
+        print("Loading A.")
+        A = load_npz("testrom2.npz")
+    return scipy.sparse.linalg.splu(A), img
+
+
+def get_known_solution(f):
+    """Produce output of known analytical solution to check that the implementation is correct
+    
+    Arguments:
+        f {array} -- The calculated source terms. 
+    """
+
+    floor = np.ones_like(f)
+    A = generate_A_higher_order(floor)
+    lu = generate_lu(A)
+
+    b = f.flatten()
+
+    return lu.solve(b)
 
 
 if __name__ == "__main__":

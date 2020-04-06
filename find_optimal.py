@@ -3,6 +3,7 @@ import numpy as np
 from dask import delayed, compute
 import dask.array as da
 import scipy
+from scipy.signal import convolve2d
 
 from wifi_matrix import (
     generate_lu,
@@ -11,10 +12,12 @@ from wifi_matrix import (
     generate_A,
     solve_single_system,
 )
+from gaussianGrid import gauss_grid
 from score import step_score
 
 from scipy.sparse import save_npz, load_npz
 import os
+from time import time
 
 
 def find_optimal_placement(lu, img, N=100):
@@ -82,7 +85,32 @@ def find_optimal_placement(lu, img, N=100):
     return curr_best_idx, all_tested_points  # , curr_best_sol
 
 
-def scores_from_point_lists(lu, img, x, y):
+def find_optimal_2(lu, img, N=20, convolve=True):
+
+    # get position list
+    #     x, y = get_position_list(img.shape, N)
+    xx, yy = zip(*gauss_grid(img, n=N))
+    x = np.unique(xx)
+    y = np.unique(yy)
+    print("Got positions")
+    start = time()
+    scores = scores_from_point_lists(lu, img, x, y, convolve=convolve)
+    end = time()
+
+    print(f"Getting solutions took {end-start:.2f}s")
+
+    tmp_idx = np.argmax(scores)
+    print(tmp_idx)
+    max_arg = np.unravel_index(tmp_idx, scores.shape)
+    print(max_arg)
+
+    x_best, y_best = x[max_arg[0]], y[max_arg[1]]
+    print(x_best, y_best)
+
+    return x_best, y_best, scores, max_arg
+
+
+def scores_from_point_lists(lu, img, x, y, convolve=True):
     """
     Returns a list of scores from x-and y-positions.
     Assumes the image has been padded with absorpion at infinity.
@@ -92,6 +120,8 @@ def scores_from_point_lists(lu, img, x, y):
     # solutions = []
     for i, (xi, yi) in enumerate([(i, j) for i in x for j in y]):
         sol = delayed(solve_single_system)(lu, xi, yi, img.shape)
+        if convolve:
+            sol = delayed(convolve_solution)(sol, img.shape, (3, 3))
         score = delayed(step_score)(sol, img)
         scores.append(score)
     # print(len(scores), len(x), len(y))
@@ -99,6 +129,23 @@ def scores_from_point_lists(lu, img, x, y):
         x.shape[0], y.shape[0]
     )  # (9,622,1000)    return results
     return results
+
+
+def convolve_solution(sol, img_shape, conv_shape=(3, 3)):
+    """TODO: Sjekk om dette er en fornuftig ting å gjøre. Også om det skal gjøres før/etter abs^2.
+    
+    Arguments:
+        sol {[type]} -- [description]
+        size {[type]} -- [description]
+    """
+
+    i1, i2 = conv_shape
+    n = i1 * i2
+    kernel = np.ones((i1, i2)) / n
+    convolved = convolve2d(sol.reshape(img_shape), kernel, mode="same").reshape(
+        sol.shape
+    )
+    return convolved
 
 
 if __name__ == "__main__":
