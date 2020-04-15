@@ -2,3 +2,7 @@ __pycache__/*
 web/uploads/*
 web/static/results/*
 *.db
+.vscode/*
+*.pyc
+*.pdf
+*.npz
