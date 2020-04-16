@@ -92,7 +92,7 @@ def find_optimal_2(lu, img, N=20, convolve=True):
     xx, yy = zip(*gauss_grid(img, n=N))
     x = np.unique(xx)
     y = np.unique(yy)
-    print("Got positions")
+    print(f"Got gauss-distributed points. Now checking {x.shape[0]*y.shape[0]} points")
     start = time()
     scores = scores_from_point_lists(lu, img, x, y, convolve=convolve)
     end = time()
@@ -100,12 +100,12 @@ def find_optimal_2(lu, img, N=20, convolve=True):
     print(f"Getting solutions took {end-start:.2f}s")
 
     tmp_idx = np.argmax(scores)
-    print(tmp_idx)
+    # print(tmp_idx)
     max_arg = np.unravel_index(tmp_idx, scores.shape)
-    print(max_arg)
+    # print(f"{max_arg})
 
     x_best, y_best = x[max_arg[0]], y[max_arg[1]]
-    print(x_best, y_best)
+    print(f"Optimal position: {(x_best, y_best)}")
 
     return x_best, y_best, scores, max_arg
 

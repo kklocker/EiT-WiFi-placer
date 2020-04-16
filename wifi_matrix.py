@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from math import floor
+# from math import floor
 from dask import delayed, compute
 import numpy as np
 import matplotlib.image
@@ -50,10 +50,24 @@ def parse_image(filename, n_air, n_concrete):
     return read_img
 
 
+def parse_image_file(file, n_air, n_concrete):
+    """Same as above, but used if the file is loaded already.
+    
+    """
+    read_img = file
+    if len(np.shape(read_img)) > 2:  # In case image is not grayscale.
+        read_img = read_img[:, :, 0]
+
+    read_img = read_img.astype(np.complex64)
+    read_img[read_img >= 0.9] = n_air
+    read_img[read_img < 0.9] = n_concrete
+    return read_img
+
+
 def pad_image(img):
     """
-    Surrounds the floorplan with absorbing material to stop reflections. pad_value should be massively complex
-    to achieve this.
+    Surrounds the floorplan with absorbing material to stop reflections. 
+    pad_value should be massively complex to achieve this.
     """
     pad_width = 4  # Amount of pixels to pad with.
     pad_value = 1 - 1j
@@ -250,6 +264,24 @@ def get_known_solution(f):
     b = f.flatten()
 
     return lu.solve(b)
+
+
+def plot_single_solution(sol, x, y, img):
+    plt.figure(figsize=(14, 10))
+    plt.imshow(
+        np.ma.array(
+            10
+            * np.log10(
+                np.abs(sol.reshape(img.shape)) ** 2 / (np.max(np.abs(sol) ** 2))
+            ),
+            mask=(img != 1.0),
+        ),
+        cmap="jet",
+    )
+    plt.colorbar()
+    # plt.title(f"Score: {sc_conv:.3}", size=20)
+    plt.scatter(y, x)
+    plt.show()
 
 
 if __name__ == "__main__":
