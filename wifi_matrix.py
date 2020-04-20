@@ -11,6 +11,8 @@ from itertools import zip_longest
 import time
 import os
 
+c = 1
+
 
 def subdivide_image(image, *, xboxes, yboxes):
     """
@@ -92,7 +94,9 @@ def generate_A(floor, k=2 * np.pi / 0.06, dx=0.01, dy=0.01):
     diag = np.zeros(nx * ny, dtype=np.complex64)
     for i in range(nx):
         for j in range(ny):
-            diag[ny * i + j] = -2 / dx ** 2 - 2 / dy ** 2 + np.square(k) / floor[i, j]
+            diag[ny * i + j] = (
+                -2 / dx ** 2 - 2 / dy ** 2 + np.square(k) / (c ** 2 * floor[i, j])
+            )
 
     A = scipy.sparse.diags(
         [1 / dy ** 2, 1 / dx ** 2, diag, 1 / dx ** 2, 1 / dy ** 2],
@@ -123,7 +127,7 @@ def generate_A_higher_order(floor, k=2 * np.pi / 0.06, dx=0.01, dy=0.01):
             diag[ny * i + j] = (
                 -30 / (12 * dx ** 2)
                 - 30 / (12 * dy ** 2)
-                + np.square(k) / floor[i, j]  # n ~ sqrt (e_r)
+                + np.square(k) / (c ** 2 * floor[i, j])  # n ~ sqrt (e_r)
             )
 
     diag_x1 = 16 / (12 * dx ** 2)
@@ -226,7 +230,9 @@ def basic_lu(filename, higher_order=False):
         scipy splu -- lu-decomp
     """
 
-    wavelength = 0.06  # Wavelength of WiFi in meters: 0.12 for 2.5GHz; 0.06 for 5GHz.
+    wavelength = (
+        0.05995849  # Wavelength of WiFi in meters: 0.12 for 2.5GHz; 0.06 for 5GHz.
+    )
     k = 2 * np.pi / wavelength
     n_air = 1
     # n_concrete = 2.16 - 0.021j  # Should depend on wavenumber.

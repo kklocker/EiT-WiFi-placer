@@ -50,7 +50,7 @@ class RouterPlacer:
         print("Fetching LU-decomposition.")
         lu = splu(A)
         c = time()
-        print(f"LU-decomposition too {c-b:.2f}s")
+        print(f"LU-decomposition took {c-b:.2f}s")
         self.lu = lu
 
     def get_results(self):
