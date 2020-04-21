@@ -30,6 +30,8 @@ def process_image(key):
     rp = RouterPlacer(img)
     rp.get_optimal_solution()
     rp.solution_plot(save_path=f"static/results/{key}.png")
+    os.remove(f"uploads/{key}.png")
+
 
 def process_queue():
     """This function runs in a separate thread and runs through the queue and
@@ -170,4 +172,4 @@ def index():
 if __name__ == "__main__":
     t = Thread(target=process_queue, daemon=True)
     t.start()
-    flask.run(host="0.0.0.0", port=9001, debug=True, use_reloader=False)
+    flask.run(host="0.0.0.0", port=9001, debug=False, use_reloader=False)
