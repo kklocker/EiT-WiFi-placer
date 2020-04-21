@@ -18,13 +18,18 @@ import re
 
 ## External package imports ##
 from flask import Flask, render_template, request, flash, redirect, jsonify
+from matplotlib.pyplot import imread
+
+## Local imports ##
+from RouterPlacer import RouterPlacer
 
 
 def process_image(key):
-    """We can't actually do this yet"""
-    sleep(10)
-    os.rename(f"uploads/{key}.png", f"static/results/{key}.png")
-
+    """This actually processes and moves the image"""
+    img = imread(f"uploads/{key}.png")
+    rp = RouterPlacer(img)
+    rp.get_optimal_solution()
+    rp.solution_plot(save_path=f"static/results/{key}.png")
 
 def process_queue():
     """This function runs in a separate thread and runs through the queue and
