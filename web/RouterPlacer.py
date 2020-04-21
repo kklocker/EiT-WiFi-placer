@@ -3,6 +3,9 @@ from scipy.sparse.linalg import splu
 from time import time
 import matplotlib.pyplot as plt
 
+import sys
+sys.path.append("..")
+
 from wifi_matrix import (
     parse_image_file,
     pad_image,
@@ -87,7 +90,7 @@ class RouterPlacer:
         plt.savefig("web/scores.png")
         plt.show()
 
-    def solution_plot(self):
+    def solution_plot(self, save_path="web/optimal_placement.png"):
         plt.figure(figsize=(14, 10))
         plt.imshow(
             np.ma.array(
@@ -105,5 +108,4 @@ class RouterPlacer:
         plt.yticks([])
         plt.title("Optimal placement.", size=20)
         plt.scatter(self.y, self.x)
-        plt.savefig("web/optimal_placement.png")
-        plt.show()
+        plt.savefig(save_path)
