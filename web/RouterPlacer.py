@@ -4,6 +4,7 @@ from time import time
 import matplotlib.pyplot as plt
 
 import sys
+
 sys.path.append("..")
 
 from wifi_matrix import (
@@ -20,6 +21,7 @@ class RouterPlacer:
     def __init__(
         self,
         floorplan_image,
+        id=None,
         wavelength=0.06,
         n_air=1 + 0j,
         n_material=2.5 - 1.0j * (2.5 * 0.2),
@@ -41,6 +43,7 @@ class RouterPlacer:
         self.scores = None
         self.optimal_score = None
         self.optimal_solution = None
+        self.name = id
 
     def get_lu(self):
         if self.lu is not None:
@@ -87,10 +90,13 @@ class RouterPlacer:
         plt.xticks([])
         plt.yticks([])
         plt.title("Scores")
-        plt.savefig("web/scores.png")
+        path = (
+            f"web/scores_{self.name}.png" if self.name is not None else "web/scores.png"
+        )
+        plt.savefig(path)
         plt.show()
 
-    def solution_plot(self, save_path="web/optimal_placement.png"):
+    def solution_plot(self, save_path=None):
         plt.figure(figsize=(14, 10))
         plt.imshow(
             np.ma.array(
@@ -103,6 +109,12 @@ class RouterPlacer:
             ),
             cmap="jet",
         )
+        if save_path is None:
+            save_path = "web/optimal_placement"
+        if self.name is not None:
+            save_path = save_path + f"_{self.name}.png"
+        else:
+            save_path = save_path + ".png"
         plt.colorbar()
         plt.xticks([])
         plt.yticks([])
