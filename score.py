@@ -38,7 +38,7 @@ def step_score(sol, img, threshold=-50):
     db = 10 * np.log10(np.square(np.abs(sol)) / umax).reshape(img.shape)
     # A = ma.masked_array(np.abs(sol).reshape(img.shape), mask=(img != 1.0))
     A = np.ma.array(np.square(np.abs(sol)).reshape(img.shape), mask=(img != 1.0))
-
+    # A = np.ma.array(np.ones_like(img), mask=(img != 1.0))
     area = A.count()
 
     tmp = A[db > threshold]
