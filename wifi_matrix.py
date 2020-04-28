@@ -66,19 +66,30 @@ def parse_image_file(file, n_air, n_concrete):
     return read_img
 
 
-def pad_image(img):
+def pad_image(img, val, width = 1):
     """
     Surrounds the floorplan with absorbing material to stop reflections. 
     pad_value should be complex to achieve this.
     """
-    pad_width = 5  # Amount of pixels to pad with.
-    pad_value = 1 - 0.15j
+    pad_width = width  # Amount of pixels to pad with.
+    pad_value = val
     x, y = np.shape(img)
 
     padded_img = np.zeros((x + 2 * pad_width, y + 2 * pad_width)) + pad_value
     padded_img[pad_width : pad_width + x, pad_width : pad_width + y] = img
 
     return padded_img
+
+
+def smooth_pad(img, thickness = 7, max_val = 3):
+    """
+    Pads the floorplan with a gradually increasing imaginary component.
+    """
+    im_values = np.linspace(0, np.sqrt(max_val), num=thickness+1, dtype=np.complex64)
+    for val in im_values[1:]:
+        print("Padding with ", 1 + val**2*1j)
+        img = pad_image(img, 1 + val**2*1j)
+    return img
 
 
 def generate_lu(floor, *args):
@@ -241,7 +252,7 @@ def basic_lu(filename, higher_order=False):
     )  # https://trace.tennessee.edu/cgi/viewcontent.cgi?article=1493&context=utk_graddiss
 
     img = parse_image(filename, n_air, n_concrete)
-    img = pad_image(img)
+    img = smooth_pad(img)
 
     if not os.path.exists("testrom2.npz"):
         print("Generating new A. ")
