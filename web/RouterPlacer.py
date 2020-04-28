@@ -9,7 +9,7 @@ sys.path.append("..")
 
 from wifi_matrix import (
     parse_image_file,
-    pad_image,
+    smooth_pad,
     generate_A_higher_order,
     solve_single_system,
 )
@@ -33,7 +33,7 @@ class RouterPlacer:
         self.convolve = convolve
 
         tmp_img = parse_image_file(floorplan_image, n_air, n_material)
-        tmp_img = pad_image(tmp_img)
+        tmp_img = smooth_pad(tmp_img)
         self.img = tmp_img
 
         self.x = None
