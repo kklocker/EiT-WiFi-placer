@@ -85,7 +85,8 @@ class RouterPlacer:
         self.optimal_score = step_score(sol, self.img)
 
     def score_plot(self):
-        plt.imshow(self.scores)
+        s = np.abs(self.scores)
+        plt.imshow(s)
         plt.colorbar()
         plt.xticks([])
         plt.yticks([])
